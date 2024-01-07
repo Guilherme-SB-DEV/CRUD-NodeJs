@@ -11,44 +11,48 @@ server.use(express.json());
 const users = []
 const port = 3000;
 
-server.get('/users',  (request, response) => {
 
+//Middleware intercepta e tem poder de alterar dados
+const Middleware = (request, response, next) =>{
+    const {id} = request.params
+    const index = users.findIndex(user => user.id === id)
+    if(index<0){
+        return response.status(404).json({message: "user not found"})
+    }
+    request.userIndex = index;
+    request.userId = id
+    next()
+
+}
+
+server.get('/users',  (request, response) => {
     return response.json(users)
 })
 
 server.post('/users', (request, response) => {
-    
     const {name, age} = request.body
-
+    
     const user = { id:uuid.v4(), name , age}    
     users.push(user)
-    console.log(users)
-    return response.status(201).json(users)
-
+    console.log(user)
+    return response.status(201).json(user)
+    
 })
 
-server.put('/users/:id', (request, response) => {
-    const {id} = request.params
+server.put('/users/:id', Middleware, (request, response) => {
+    const id = request.userId
     const {name, age} = request.body
-
-    const updatedUser = {id, name, age}
-
-    const index = users.findIndex(user => user.id === id)
-    if(index<0){
-        return response.status(404).json({message: "user not found"})
-    }
+    const index = request.userIndex
     
+    const updatedUser = {id, name, age}
+        
     users[index] = updatedUser
     
-    return response.json(users)
+    return response.json(updatedUser)
 });
 
-server.delete('/users/:id', (request, response)=>{
-    const {id} = request.params
-    const index = users.findIndex(user => user.id === id)
-    if(index<0){
-        return response.status(404).json({message: "user not found"})
-    }
+server.delete('/users/:id', Middleware, (request, response)=>{
+    const index = request.userIndex;
     users.splice(index, 1);
     return response.status(204).json()
 })
